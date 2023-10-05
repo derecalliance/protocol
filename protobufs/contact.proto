@@ -14,9 +14,9 @@ package derec.message;
 */
 message ContactMessage {
  /**
-  * public key (byte array supports many schemes)
+  * public key in PEM encoding format
   */
- bytes publicEncryptionKey = 1;
+ string publicEncryptionKey = 1;
 
  /**
   * 32-byte (random) nonce. This should be given to a party after authenticing.

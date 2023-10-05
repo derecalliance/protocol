@@ -122,11 +122,11 @@ message Secret {
    */
   bytes secretData = 1;
 
-  /* The private encryption key used by the sharer.*/
-  bytes privateEncryptionKey = 2;
+  /* The private encryption key used by the sharer, in PEM encoding.*/
+  string privateEncryptionKey = 2;
 
-  /* The private signature key used by the sharer. */
-  bytes privateSignatureKey = 3;
+  /* The private signature key used by the sharer, in PEM encoding. */
+  string privateSignatureKey = 3;
 
   /* The time and date when the sharer created the shares of this secret. */
   google.protobuf.Timestamp creationTime = 4;

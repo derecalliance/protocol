@@ -34,14 +34,14 @@ message PairRequestMessage {
   SenderKind senderKind = 1;
 
   /*
-   * public key used for signatures of messages from the initiator;
+   * public key (PEM encoded) used for signing messages from the initiator;
    */
-  bytes publicSignatureKey = 3;
+  string publicSignatureKey = 3;
 
   /*
-   * public key used for encrypting messages to the initiator;
+   * public key (PEM encoded) used for encrypting messages to the initiator;
    */
-  bytes publicEncryptionKey = 4;
+  string publicEncryptionKey = 4;
 
   /*
    * sender’s app-readable contact information,
@@ -75,9 +75,9 @@ message PairResponseMessage {
   SenderKind senderKind = 2;
 
   /*
-   * public signature key (byte array supports many schemes) of the responder
+   * public signature key (PEM encoded) of the responder
    */
-  bytes publicSignatureKey = 3;
+  string publicSignatureKey = 3;
 
   /*
    * app-readable contact information (e.g. name, phone number, etc.)
