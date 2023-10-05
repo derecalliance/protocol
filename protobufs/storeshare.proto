@@ -1,5 +1,6 @@
 syntax = "proto3";
 import "result.proto";
+import "parameterrange.proto";
 import "google/protobuf/timestamp.proto";
 
 package derec.message;
@@ -130,26 +131,27 @@ message Secret {
   /* The time and date when the sharer created the shares of this secret. */
   google.protobuf.Timestamp creationTime = 4;
 
-  /* TODO: list of helpers */
-  repeated string helpers = 5;
-
   /* Threshold for # of helpers for recovery */
-  int64 helperThresholdForRecovery = 6;
+  int64 helperThresholdForRecovery = 5;
 
   /* Threshold for # of helpers confirming receipt of a share,
    * to delete the old one
    */
-  int64 helperThresholdForConfirmingShareReceipt = 7;
-  /* TODO:
-List of helpers, each with their info (as shown in “per helper”, below, not including status and the share itself),
-optionally: move outside the secret
-including the protocol number
+  int64 helperThresholdForConfirmingShareReceipt = 6;
 
+  message HelperSpecificInfo {
+    /*
+     * SHA-384 hash of helper's public encryption key
+     */
+    bytes helper = 1;
 
-Parameters
-The chosen, agreed values for each parameter in the Parameters section, above
-   */
+    /*
+     * agreed upon parameters between helper and sharer
+     */
+    ParameterRange helperParams = 2;
+  }
 
+  repeated HelperSpecificInfo helpers = 7; 
 }
 
 
