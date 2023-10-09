@@ -1,0 +1,32 @@
+syntax = "proto3";
+
+package derec.message;
+
+/* 
+ * Protocol message sent by a message receiver who receives a bad message back to the message sender.
+ */
+message MessagingErrorMessage {
+  /* Enum specifying the error encountered */
+  MessagingErrorEnum messagingErrorEnum = 1;
+
+  /* The reason for this error. */
+  string reason = 2;
+}
+
+/*
+ * The error that the message receiver wants to communicate back to the sender. 
+ */
+ enum MessagingErrorEnum {
+  /* The received message could not be decrypted successfully. */
+  DECRYPTION_FAILED = 0;
+
+  /* Signature could not be verified */
+   VERIFICATION_FAILED = 1;
+
+  /* Format error - includes errors like protobuf parsing failure or invalid message formatting. */
+  FORMAT_ERROR = 2;
+
+   /* Other error - reason for the error may be specified in the reason field in MessagingErrorMessage */
+   OTHER = 3;
+}
+
