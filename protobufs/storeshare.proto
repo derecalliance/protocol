@@ -31,7 +31,7 @@ message StoreShareRequestMessage {
   * All versions that the helper must retain (including this new one).
   * The helper should delete all other versions outside this list.
   */
-  repeated int64 keepList = 3;
+  repeated int32 keepList = 3;
 }
 
 /*
@@ -97,11 +97,9 @@ message DeRecShare {
 
   /*
    * sharer-assigned identifier for the secret;
-   * this is an opaque 128-bit value also
-   * present in message header. Size chosen to
-   * accommodate UUID if sharer chooses
+   * this is an opaque 64-bit value
    */
-  bytes secretId = 4;
+  int64 secretId = 4;
 
   /*
    * version number for the share;
@@ -162,5 +160,5 @@ message StoreShareResponseMessage {
   /*
    * version number from the share message
    */
-  int64 version = 2;
+  int32 version = 2;
 }

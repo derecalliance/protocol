@@ -10,7 +10,7 @@ message GetShareRequestMessage {
   int64 secretId = 1;
 
   /* the share version for the requested share */
-  int64 shareVersion = 2;
+  int32 shareVersion = 2;
 }
 
 /*
