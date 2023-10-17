@@ -96,10 +96,10 @@ message DeRecShare {
   bytes y = 3;
 
   /*
-   * sharer-assigned identifier for the secret;
-   * this is an opaque 64-bit value
+   * Secret ID (any length from 1 to 16 bytes) for the requested share
+   * Must be unique for each secret created by a sharer.
    */
-  int64 secretId = 4;
+  bytes secretId = 4;
 
   /*
    * version number for the share;

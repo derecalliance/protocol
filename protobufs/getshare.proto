@@ -6,8 +6,11 @@ package derec.message;
 
 /* Request a given share that is stored by the helper. */
 message GetShareRequestMessage {
-  /* the secret ID for the requested share */
-  int64 secretId = 1;
+  /*
+   * Secret ID (any length from 1 to 16 bytes) for the requested share
+   * Must be unique for each secret created by a sharer
+   */
+  bytes secretId = 1;
 
   /* the share version for the requested share */
   int32 shareVersion = 2;

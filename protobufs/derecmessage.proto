@@ -46,9 +46,10 @@ message DeRecMessage {
   bytes receiver = 4;
 
   /*
-   * secret ID (64-bit random number chosen by sharer at initial pairing)
+   * Secret ID (any length from 1 to 16 bytes)
+   * Must be unique for each secret created by a sharer.
    */
-  int64 secretId = 5;
+  bytes secretId = 5;
 
   /*
    * UTC timestamp for when the sender created this message
