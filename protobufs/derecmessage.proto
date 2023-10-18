@@ -4,8 +4,8 @@ import "pair.proto";
 import "unpair.proto";
 import "storeshare.proto";
 import "verify.proto";
-import "secretidsversions.proto";
 import "getshare.proto";
+import "secretidsversions.proto";
 import "messagingerror.proto";
 
 package derec.message;
@@ -31,8 +31,8 @@ message DeRecMessage {
   /*
    * DeRec protocol version number
    */
-  int32 versionMajor = 1;
-  int32 versionMinor = 2;
+  int32 protocolVersionMajor = 1;
+  int32 protocolVersionMinor = 2;
 
   /*
    * SHA-384 hash of sender public key (used to identify the sender and key)
@@ -46,9 +46,10 @@ message DeRecMessage {
   bytes receiver = 4;
 
   /*
-   * secret ID (64-bit random number chosen by sharer at initial pairing)
+   * Secret ID (any length from 1 to 16 bytes)
+   * Must be unique for each secret created by a sharer.
    */
-  int64 secretId = 5;
+  bytes secretId = 5;
 
   /*
    * UTC timestamp for when the sender created this message
