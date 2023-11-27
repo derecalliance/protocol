@@ -54,6 +54,32 @@ Moreover, to enable verifiable recovery -- verifiability means that we can ident
 
 There is a caveat that verifying an opening proof requires the user to know the expected Merkle tree root, which is not a valid assumption during recovery as the user does not have any prior state. To address this potential issue, we also replicate the Merkle tree root value with each share. Recovery now uses a majority rule to determine the correct Merkle tree root amongst all the received shares.
 
+The sharing algorithm implements the following pseudo-code:
+```
+// t: reconstruction threshold
+// n: total number of helpers
+// secret: byte array holding the secret data
+// seed: 256-bit PRNG seed value
+share(t, n, secret, seed):
+	prng := create_prng_extractor(seed); //cryptographic PRNG
+	key := extract(prng, 256); //extract 256 bits
+	ctxt := aes_gcm_encrypt(key, msg); //AES-GCM ciphertext
+	for i in [1..t]: //sample t random field elements
+		a_i = extract(prng, 256);
+	a_0 := key;
+	//define polynomial with input coefficients
+	f := create_polynomial([a_0, ..., a_t]);
+	for i in [1..n]:
+		x_i := extract(prng, 256);
+		y_i := evaluate_polynomial(f, x_i);
+	mt := create_merkle_tree([(x_1, y_1),...,(x_n, y_n)]);
+	root := mt[0];
+	for i in [1..n]:
+		o_i := extract_merkle_opening(mt, i);
+		share_i := (x_i, y_i, ctxt, root, o_i);
+	return [share_1,...,share_n];
+```
+
 ### Recovery
 If a sharer loses their secret, they can recover it by combining the secret shares that were sent to a threshold number of helpers. This might mean installing the software on a new device and creating a new secret ID, to be used for establishing the communication channels used for recovery. 
 
