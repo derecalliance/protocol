@@ -25,6 +25,8 @@ The DeRec protocol provides the following guarantees:
 
 ## Protocol Details
 
+We elaborate on the core sub-protocols within DeRec: pairing, sharing, verification, and recovery.
+
 ### Pairing
 For pairing, there must be a transfer of a "contact" before the protocol begins. This includes one party's encryption key, the URI to use for the protocol, and a nonce to identify this pairing. The "initiator" then sends a pairing message, and the "responder" sends a response. At that point, the two parties are now paired. The initiator can be either the sharer or helper, and the responder will be the other party. 
 
@@ -42,12 +44,27 @@ The initiator decrypts the message with their encryption private key but can onl
 
 After pairing for a given secret ID, for all future messages for that secret ID, the receiver of a message can both decrypt and verify the signature on each message as it is received.
 
+### Sharing
+
+On creating a secret or later modifying its value, the sharer creates new shares to distribute to the helpers. New shares are also created when the set of helpers is modified, say to add or remove a helper.
+
+As mentioned above, to support secrets of arbitrary length, we use hybrid encryption where the secret data is encrypted under AES-GCM, while the AES key is secret-shared amongst the helpers -- the encrypted ciphertext can be replicated amongst some or all of the helpers.
+
+Moreover, to enable verifiable recovery -- verifiability means that we can identify incorrect shares and recover the correct AES key when given a threshold number of correct shares -- we attach authentication data to each individual share. To that end, we use a vector commitment scheme to commit to the list of all shares, and attach an opening proof for each share. Specically, we use a Merkle tree based vector commitment, where the leaves of the Merkle tree are SHA-384 hashes of all shares, and the root of the Merkle tree acts as the vector commitment; the opening proof for any share is a Merkle path, comprising of sibling nodes along the path from the leaf node to the root. During recovery, with an opening proof accompanying each share, the recovering user can recompute hashes and check that the recomputed root hash equals the expected Merkle tree root.
+
+There is a caveat that verifying an opening proof requires the user to know the expected Merkle tree root, which is not a valid assumption during recovery as the user does not have any prior state. To address this potential issue, we also replicate the Merkle tree root value with each share. Recovery now uses a majority rule to determine the correct Merkle tree root amongst all the received shares.
+
 ### Recovery
 If a sharer loses their secret, they can recover it by combining the secret shares that were sent to a threshold number of helpers. This might mean installing the software on a new device and creating a new secret ID, to be used for establishing the communication channels used for recovery. 
 
 The sharer then pairs with each of the helpers in "recovery mode". This is identical to normal pairing, except that there is a boolean in the pairing message that says it is being done in recovery mode rather than normal mode. It is recommended that the helper software inform its user that this is a recovery pairing rather than a normal pairing. The protocol itself treats the two pairings identically, but the software might have a user interface that treats them differently. For example, the sharer's software might display on the screen the fact that it is in recovery mode, and might disallow creating any new information to protect until the recovery is done. And the helper app might request that the helper choose which secrets that are currently stored belong to the same person as the person that is now authenticating to recover.  
 
 Once the sharer has paired with a helper in recovery mode, they can then send the normal message that gets all secret IDs and versions that this helper has for that person. If the helper recognized the sharer as being the same person who saved earlier secrets with them, then the reply to that request will include those other secrets. The sharer can then request every share that the helper claims to possess. After each new helper is added, the sharer should try to reconstruct all the secrets for which the helper sent back shares. If this helper was enough to cross the recovery threshold, then that recovery will succeed. When all secrets have been recovered, the sharer can exit recovery mode, and go back to behaving normally, such as by allowing the user to see all the recovered secrets, and to add new information to protect.
+
+### Verification
+
+To verify that a helper is retaining the correct share, we use the following verification protocol between a sharer and that helper.
+The sharer samples a random challenge nonce, and sends it to the helper. The helper is expected to reply (before a certain deadline) with a hash over the entire share contents (that was sent by the sharer) and the challenge nonce. Clearly, the verification protocol is only successful in convincing the sharer if the helper is retaining the correct share.
 
 ## DeRec State Diagrams
 
