@@ -6,9 +6,9 @@ Digital assets are typically protected using secrets, such as passwords or crypt
 
 Decentralized recovery is a method of safeguarding a user's secret by distributing shares of that secret among multiple helpers, who store their individual share on their local device in order to help the user recover that secret in future. The shares are constructed under a threshold secret-sharing scheme (e.g. Shamir's secret sharing scheme), with a chosen threshold (defaults to half) -- at least three helpers must be present in order to use the protocol. Should the user lose access to their device, they can recover their secret data by retrieving the previously-distributed shares from at least half of their helpers. For successful recovery, the user only needs to recall the identities of half of their helpers and authenticate with them in-person.
 
-For simplicity, we will consider a single instance of the DeRec protocol to only protect one secret. The secret can have arbitrary length, thus making DeRec applicable to several use cases, from protecting root keys for cryptocurrency wallets and password managers to file storage. A secret is shared by first encrypting it with a random key (using AES-GCM, for instance), and then generating shares of the key using (verifiable) Shamir secret sharing. Specifically, each share consists of the ciphertext, a Shamir share of encryption key, and some authentication data that the sharer can use to verify the authenticity of the share during recovery -- note that, depending on the setting, the ciphertext need not be replicated at all helpers. The authentication data is construction-specific (described later), but it will typically include a vector commitment to all shares, and an opening that can be used to verify the contents of the share with respect to the commitment; the commitment will be replicated amongst all helpers, and a majority-rule can be applied to determine the correct commitment during recovery.
-
 From here on, we will refer to the user that is sharing a secret as a sharer, and the party that has agreed to hold onto a share as the helper. Note that there is no communication between helpers, and the helpers are oblivious of each other (and even the total number of helpers protecting a secret). All communication between a sharer and a helper occurs over a secure channel, where each message is signed-then-encrypted -- here, the signature also covers the identity of the message sender and receiver -- using cryptographic keys that are exchanged during a (in-person) pairing protocol. That is, we perform a trusted setup where the parties can exchange public signature and encryption keys, thus giving us a public key infrastructure.
+
+For simplicity, we will consider a single instance of the DeRec protocol to only protect one secret. The secret can have arbitrary length, thus making DeRec applicable to several use cases, from protecting root keys for cryptocurrency wallets and password managers to file storage. A secret is shared by first encrypting it with a random key (using AES-GCM, for instance), and then generating shares of the key using (verifiable) Shamir secret sharing. Specifically, each share consists of the encrypted secret (i.e., the AES-encrypted ciphertext), a Shamir share of encryption key, and some authentication data that the sharer can use to verify the authenticity of the share during recovery -- note that, depending on the setting, the encrypted secret data need not be replicated at all helpers. The authentication data is construction-specific (described later), but it will typically include a vector commitment to all shares, and an opening that can be used to verify the contents of the share with respect to the commitment; the commitment will be replicated amongst all helpers, and a majority-rule can be applied to determine the correct commitment during recovery.
 
 After pairing, a sharer may contact the helper to store a share of the secret. If the secret is modified, or if the helper set is changed to add or exclude a helper, then new shares are generated and transmitted to all helpers; as a result, each share is annotated with a version. Moreover, it is important to ensure that a helper is maintaining the correct share, to reduce the likelihood that corruptions or unwillingness to help cause a failure during recovery. To that end, the sharer periodically requests the helper to verify that they are holding the correct share, via a challenge-response mechanism. For each of these interactions, communication is initiated by the sharer, and the helper is expected to reply within a specified time duration; after sufficient retries, the sharer may give up on the helper, and choose to exclude it from the helper set.
 
@@ -22,6 +22,32 @@ The DeRec protocol provides the following guarantees:
 * privacy: as long as fewer than a threshold number of helpers are corrupt, the sharer's secret and helper set (number of helpers and their identity) remain private;
 * liveness: if sufficient number of helpers are available during recovery such that the sharer can access a threshold number of uncorrupted shares of some version, then the recovery process terminates;
 * correctness: on termination, the recovery process will output the correct secret value that was shared (for the version that was reconstructed);
+
+## Protocol Details
+
+### Pairing
+For pairing, there must be a transfer of a "contact" before the protocol begins. This includes one party's encryption key, the URI to use for the protocol, and a nonce to identify this pairing. The "initiator" then sends a pairing message, and the "responder" sends a response. At that point, the two parties are now paired. The initiator can be either the sharer or helper, and the responder will be the other party. 
+
+The initiator creates a Pair Request message, signs the message with their private signature key and encrypts the message using the responder's public encryption key.
+
+When the initiator sends the pair request message, the responder initially doesn't know the initiator's public key at this stage. So they can't do anything with the sender hash immediately, though they can verify the receiver hash using their own public encryption key.
+
+The responder decrypts the message using their private encryption key but can't verify the sender's signature yet, as they don't have a sender signature public key.
+
+The initiator's public keys (for encryption and signature) are both present in the pair message, so the the receiver can belatedly a) assess the SHA-384 hash they just received. b) assess the signature.
+
+The responder then replies with a Pair Reply message. They sign with their private signature key and encrypt it with the initiator's public encryption key.
+
+The initiator decrypts the message with their encryption private key but can only assess the signature having deserialised the pair response message.
+
+After pairing for a given secret ID, for all future messages for that secret ID, the receiver of a message can both decrypt and verify the signature on each message as it is received.
+
+### Recovery
+If a sharer loses their secret, they can recover it by combining the secret shares that were sent to a threshold number of helpers. This might mean installing the software on a new device and creating a new secret ID, to be used for establishing the communication channels used for recovery. 
+
+The sharer then pairs with each of the helpers in "recovery mode". This is identical to normal pairing, except that there is a boolean in the pairing message that says it is being done in recovery mode rather than normal mode. It is recommended that the helper software inform its user that this is a recovery pairing rather than a normal pairing. The protocol itself treats the two pairings identically, but the software might have a user interface that treats them differently. For example, the sharer's software might display on the screen the fact that it is in recovery mode, and might disallow creating any new information to protect until the recovery is done. And the helper app might request that the helper choose which secrets that are currently stored belong to the same person as the person that is now authenticating to recover.  
+
+Once the sharer has paired with a helper in recovery mode, they can then send the normal message that gets all secret IDs and versions that this helper has for that person. If the helper recognized the sharer as being the same person who saved earlier secrets with them, then the reply to that request will include those other secrets. The sharer can then request every share that the helper claims to possess. After each new helper is added, the sharer should try to reconstruct all the secrets for which the helper sent back shares. If this helper was enough to cross the recovery threshold, then that recovery will succeed. When all secrets have been recovered, the sharer can exit recovery mode, and go back to behaving normally, such as by allowing the user to see all the recovered secrets, and to add new information to protect.
 
 ## DeRec State Diagrams
 
@@ -73,28 +99,4 @@ Terms used (from RFC 2119):
 | Recovery     | GetSecretIdsVersionsRequestMessage received                        | MUST Send GetSecretIdsVersionsResponseMessage with all secrets and versions for this sharer. This MUST only reveal other secret IDs if it is received through the communication channel of a secretID paired in recovery mode. Otherwise, it only returns the versions associated with the current secretID, with a result status of PARTIAL.                                                                        |
 | Recovery     | GetShareRequestMessage received                                    | MUST send GetShareResponseMessage with the share and appropriate error code. This MUST only return the share if it is either requested through the same secret ID that is being requested, or is requested through a secret ID that was paired in recovery mode.                                                                                                                                                     |
 
-# Further details
 
-### Pairing
-For pairing, there must be a transfer of a "contact" before the protocol begins. This includes one party's encryption key, the URI to use for the protocol, and a nonce to identify this pairing. The "initiator" then sends a pairing message, and the "responder" sends a response. At that point, the two parties are now paired. The initiator can be either the sharer or helper, and the responder will be the other party. 
-
-The initiator creates a Pair Request message, signs the message with their private signature key and encrypts the message using the responder's public encryption key.
-
-When the initiator sends the pair request message, the responder initially doesn't know the initiator's public key at this stage. So they can't do anything with the sender hash immediately, though they can verify the receiver hash using their own public encryption key.
-
-The responder decrypts the message using their private encryption key but can't verify the sender's signature yet, as they don't have a sender signature public key.
-
-The initiator's public keys (for encryption and signature) are both present in the pair message, so the the receiver can belatedly a) assess the SHA-384 hash they just received. b) assess the signature.
-
-The responder then replies with a Pair Reply message. They sign with their private signature key and encrypt it with the initiator's public encryption key.
-
-The initiator decrypts the message with their encryption private key but can only assess the signature having deserialised the pair response message.
-
-After pairing for a given secret ID, for all future messages for that secret ID, the receiver of a message can both decrypt and verify the signature on each message as it is received.
-
-### Recovery
-If a sharer loses their secret, they can recover it by combining the secret shares that were sent to a threshold number of helpers. This might mean installing the software on a new device and creating a new secret ID, to be used for establishing the communication channels used for recovery. 
-
-The sharer then pairs with each of the helpers in "recovery mode". This is identical to normal pairing, except that there is a boolean in the pairing message that says it is being done in recovery mode rather than normal mode. It is recommended that the helper software inform its user that this is a recovery pairing rather than a normal pairing. The protocol itself treats the two pairings identically, but the software might have a user interface that treats them differently. For example, the sharer's software might display on the screen the fact that it is in recovery mode, and might disallow creating any new information to protect until the recovery is done. And the helper app might request that the helper choose which secrets that are currently stored belong to the same person as the person that is now authenticating to recover.  
-
-Once the sharer has paired with a helper in recovery mode, they can then send the normal message that gets all secret IDs and versions that this helper has for that person. If the helper recognized the sharer as being the same person who saved earlier secrets with them, then the reply to that request will include those other secrets. The sharer can then request every share that the helper claims to possess. After each new helper is added, the sharer should try to reconstruct all the secrets for which the helper sent back shares. If this helper was enough to cross the recovery threshold, then that recovery will succeed. When all secrets have been recovered, the sharer can exit recovery mode, and go back to behaving normally, such as by allowing the user to see all the recovered secrets, and to add new information to protect.
