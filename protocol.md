@@ -77,7 +77,7 @@ share(t, n, secret, seed):
 	for i in [1..n]:
 		o_i := extract_merkle_opening(mt, i);
 		share_i := (x_i, y_i, ctxt, root, o_i);
-	return [share_1,...,share_n];
+	output [share_1,...,share_n];
 ```
 
 ### Recovery
@@ -86,6 +86,28 @@ If a sharer loses their secret, they can recover it by combining the secret shar
 The sharer then pairs with each of the helpers in "recovery mode". This is identical to normal pairing, except that there is a boolean in the pairing message that says it is being done in recovery mode rather than normal mode. It is recommended that the helper software inform its user that this is a recovery pairing rather than a normal pairing. The protocol itself treats the two pairings identically, but the software might have a user interface that treats them differently. For example, the sharer's software might display on the screen the fact that it is in recovery mode, and might disallow creating any new information to protect until the recovery is done. And the helper app might request that the helper choose which secrets that are currently stored belong to the same person as the person that is now authenticating to recover.  
 
 Once the sharer has paired with a helper in recovery mode, they can then send the normal message that gets all secret IDs and versions that this helper has for that person. If the helper recognized the sharer as being the same person who saved earlier secrets with them, then the reply to that request will include those other secrets. The sharer can then request every share that the helper claims to possess. After each new helper is added, the sharer should try to reconstruct all the secrets for which the helper sent back shares. If this helper was enough to cross the recovery threshold, then that recovery will succeed. When all secrets have been recovered, the sharer can exit recovery mode, and go back to behaving normally, such as by allowing the user to see all the recovered secrets, and to add new information to protect.
+
+The reconstruction algorithm implements the following pseudo-code:
+```
+recover([share_1, ..., share_t]):
+	assert \forall i: share_i.root != share_1.root;
+	assert \forall i: share_i.ctxt != share_1.ctxt;
+
+	ctxt := share_1.ctxt;
+	root := share_1.root;
+
+	for i in [1,..,n]:
+		assert verify_merkle_opening(root, share_i.o);
+
+	x_1, ..., x_n := share_1.x, ..., share_n.x;
+	y_1, ..., y_n := share_1.y, ..., share_n.y;
+	f := interpolate_polynomial([a_0, ..., a_t]);
+	key := evaluate_polynomial(f, 0);
+	msg := aes_gcm_encrypt(key, ctxt);
+	output msg;
+```
+
+Observe the behavior of this algorithm in some failure scenarios. First, any of the input shares could be tampered. This threat is mitigated by first verifying each share with respect to the commitment, i.e., the merkle tree root. Second, the user may be invoking this algorithm with fewer shares than the reconstruction threshold chosen at the time of sharing. In this case, by the properties of Shamir secret sharing, an arbitrary value (astronomically unlikely to be the correct secret) is reconstructed, thus letting the algorithm proceed with an incorrect AES key; however, by using AES-GCM (which provides CCA-2 and multi-key security), we can be assured that the decryption procedure will abort with error.
 
 ### Verification
 
