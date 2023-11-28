@@ -1,6 +1,6 @@
 # DeRec Protocol
 
-## Directories
+## File Structure
 
-- `protobufs`: Contains protobufs for DeRec messages.
-- `protocol`: Contains a PDF of the state diagrams and message processing table.
+- `diagrams/`: Contains the state diagram images which are used in `protocol.md` file.
+- `protocol.md`: File containing protocol specifications and state diagrams.
