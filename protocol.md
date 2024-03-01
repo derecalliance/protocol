@@ -225,6 +225,8 @@ These are some of the major concepts related to DeRec, collected here in a list,
 	- The pairing is a single message from initiator to responder, followed by a single message from responder to initiator. The initiator can be either helper or sharer, and the responder is the other one. This is the only case where a helper might send a message that isn\'t a response. It is OK if a particular helper app is created to be a server that is designed to only be a responder and not a initiator, and so to never send any messages that aren\'t responses.
 - Authentication
 	- When pairing, the helper must determine which previous pairings were with the same person. This requires some form of authentication. The protocol is not involved in this authentication. But the authentication is critically important. DeRec is only as secure as the authentication that is used. Sharers and helpers are free to negotiate how stringent this authentication should be. Although the protocol is agnostic to how authentication is done, the DeRec Alliance will emphasize best practices. And there may eventually exist auditing services that will certify whether it is being done well.
+ - Verification
+	- The sharer can optionally check with the helper periodically (such as once a day) to verify that the helper still has the share. The helper replies with cryptographic proof that they still have the share, and that the share has not been corrupted.
 
 ## DeRec State Diagrams
 
