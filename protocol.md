@@ -211,6 +211,10 @@ These are some of the major concepts related to DeRec, collected here in a list,
 	- It could also contain the contact information for all the helpers, to reduce the amount of pairing needed during a recovery.
 	- A sharer might have more than one secret, and could choose to share each one with a different set of helpers, possibly with some overlap.
 	- For a given sharer and given helper, a secret is associated with both their public keys for encryption and signing, and so is associated with a secure communication channel between them.
+- Share
+	- A piece of the secret, as defined by Shamir secret sharing, so that a given fraction of them can be combined to recover the secret.
+	- Includes a version number. So a sharer updates by first sending a new version to all helpers, then asking each helper to remove the old version.
+	- Includes a commitment, so that during recovery, a single malicious helper that provides a corrupted share will be identified as different, and the sharer can use just the good shares for reconstructing the secret.
 - Message
 	- The protocol consists entirely of messages sent between sharer and helper.
 	- Each message is signed and encrypted. Therefore it can be sent through an insecure channel.
